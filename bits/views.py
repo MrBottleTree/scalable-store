@@ -3,6 +3,8 @@ NOTIFICATION_COOLDOWN = 10 #minutes nigga
 
 import os
 import json
+import random
+
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -582,38 +584,64 @@ def api_misc(request):
 @ensure_csrf_cookie
 def api_specificitem(request, id):
     email = request.session.get('email')
-    person = Person.objects.filter(email = email).first()
+    person = Person.objects.filter(email=email).first()
     if not person:
         return JsonResponse({"status": "error", "error": "Access Denied!"}, status=403)
 
-    item = Item.objects.filter(id = int(id)).first()
+    try:
+        item_id = int(id)
+    except Exception:
+        return JsonResponse({"status": "error", "error": "Invalid item id"}, status=400)
+
+    item = (
+        Item.objects.select_related('seller', 'category', 'hostel')
+        .prefetch_related(Prefetch('images', queryset=Image.objects.order_by('display_order')))
+        .filter(id=item_id)
+        .first()
+    )
     if not item:
         return JsonResponse({"status": "error", "error": "Item not found"}, status=404)
 
     if request.method == "GET":
         images = item.images.all()
         image_urls = [request.build_absolute_uri(img.image.url) for img in images]
-        similar_items = (
-            item.category.items
-            .filter(seller__campus=item.seller.campus)
-            .exclude(id=item.id)
-            .order_by('?')
-        )[0:8]
-        similar_items = helper.items_sort(similar_items)
+
         data = []
-        for i in similar_items:
-            first_image = i.images.first()
-            image_url = request.build_absolute_uri(first_image.image.url) if first_image else ""
-            data.append({
-                "id": i.id,
-                "firstimage": image_url,
-                "title": i.name,
-                "price": i.price,
-                "campus": i.seller.campus,
-                "date": i.updated_at.isoformat(),
-                "hostel": i.hostel.name,
-                "contact": i.whatsapp,
-            })
+        if item.category:
+            base_similar = (
+                item.category.items
+                .filter(seller__campus=item.seller.campus)
+                .exclude(id=item.id)
+            )
+
+            similar_ids = list(base_similar.values_list('id', flat=True))
+            if len(similar_ids) > 8:
+                pick_ids = random.sample(similar_ids, 8)
+            else:
+                pick_ids = similar_ids
+
+            similar_qs = (
+                Item.objects.filter(id__in=pick_ids)
+                .select_related('seller', 'category', 'hostel')
+                .prefetch_related(Prefetch('images', queryset=Image.objects.order_by('display_order')))
+            )
+
+            similar_items = helper.items_sort(similar_qs)
+
+            for i in similar_items:
+                imgs = list(i.images.all())
+                first_image = imgs[0] if imgs else None
+                image_url = request.build_absolute_uri(first_image.image.url) if first_image else ""
+                data.append({
+                    "id": i.id,
+                    "firstimage": image_url,
+                    "title": i.name,
+                    "price": i.price,
+                    "campus": i.seller.campus,
+                    "date": i.updated_at.isoformat(),
+                    "hostel": i.hostel.name,
+                    "contact": i.whatsapp,
+                })
 
         return JsonResponse({
             "status": "ok",
@@ -655,9 +683,9 @@ def api_specificitem(request, id):
             item.price = float(price)
 
         if category_id:
-            category = Category.objects.filter(id = category_id).first()
+            category = Category.objects.filter(id=category_id).first()
             if not category:
-                return JsonResponse({"status":"error", "error":"Invalid Category ID"}, status = 405)
+                return JsonResponse({"status": "error", "error": "Invalid Category ID"}, status=400)
             item.category = category
 
         if phone:
@@ -665,9 +693,9 @@ def api_specificitem(request, id):
             person.phone = phone
 
         if hostel_name:
-            hostel = Hostel.objects.filter(name = hostel_name).first()
+            hostel = Hostel.objects.filter(name=hostel_name).first()
             if not hostel:
-                return JsonResponse({"status":"error", "error":"Invalid Hostel name"}, status = 405)
+                return JsonResponse({"status": "error", "error": "Invalid Hostel name"}, status=400)
             item.hostel = hostel
             person.hostel = hostel
 
@@ -706,7 +734,7 @@ def api_specificitem(request, id):
         image_url = request.build_absolute_uri(first_image.image.url) if first_image else ""
 
         return JsonResponse({
-            "status":"ok", 
+            "status": "ok",
             "id": item.id,
             "firstimage": image_url,
             "title": item.name,
@@ -715,6 +743,7 @@ def api_specificitem(request, id):
             "hostel": item.hostel.name,
             "contact": item.whatsapp,
         })
+
     return JsonResponse({"status": "error", "error": "Invalid method"}, status=405)
 
 @ensure_csrf_cookie
