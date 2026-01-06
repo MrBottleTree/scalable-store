@@ -506,13 +506,10 @@ def api_authreceiver(request):
         data = json.loads(request.body)
         email = data.get('email')
         name = data.get('name')
-        person = Person.objects.filter(email = email).first()
-        if not person:
-            person = Person.objects.create(name = name, email = email)
+        person, _ = Person.objects.get_or_create(email=email, defaults={"name": name})
         request.session["email"] = email
         resp = JsonResponse({"status": "ok", "campus": person.campus})
         resp.set_cookie(get_token(request))
-        request.session["email"] = email
         return resp
     else:
         if not request.session.session_key:
@@ -521,7 +518,8 @@ def api_authreceiver(request):
         person = Person.objects.filter(email=email).first()
         if person:
             response = JsonResponse({"status": "ok", "campus": person.campus, "name": person.name})
-        response = JsonResponse({"info": "No POST data processed."})
+        else:
+            response = JsonResponse({"info": "No POST data processed."})
 
         csrf_token = get_token(request)
         response.set_cookie(
