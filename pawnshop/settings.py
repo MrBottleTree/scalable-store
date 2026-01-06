@@ -54,7 +54,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'bits',
-    'storages'
+    'storages',
+    'corsheaders'
 ]
 
 MIDDLEWARE = [
@@ -66,6 +67,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'bits.log_middleware.RequestLoggingMiddleware',
+    'bits.middleware.BlockUnauthorizedOriginsMiddleware'
 ]
 
 ROOT_URLCONF = 'pawnshop.urls'
@@ -91,12 +94,29 @@ WSGI_APPLICATION = 'pawnshop.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if os.getenv('PRODUCTION') == 'False':
+    print("Running locally")
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+else:
+    print("Running on production mode")
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DATABASE_NAME'),
+            'USER': os.getenv('DATABASE_USER'),
+            'PASSWORD': os.getenv('DATABASE_PASSWORD'),
+            'HOST': os.getenv('DATABASE_ENDPOINT'),
+            'PORT': os.getenv('DATABASE_PORT'),
+            'OPTIONS': {
+                'sslmode': 'require',
+            },
+        }
+    }
 
 
 # Password validation
@@ -123,7 +143,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -134,6 +154,48 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+SITE_ID = 2
+
+SECURE_REFERRER_POLICY = 'no-referrer-when-downgrade'
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
+
+PWA_APP_NAME = 'Bits Pilani Store'
+PWA_APP_SHORT_NAME = 'Bits Store'
+PWA_APP_DESCRIPTION = 'A BITS Market place, made by BITSians, for BITSians!'
+PWA_APP_THEME_COLOR = '#000000'
+PWA_APP_BACKGROUND_COLOR = '#000000'
+PWA_APP_DISPLAY = 'standalone'
+PWA_APP_SCOPE = '/'
+PWA_APP_ORIENTATION = 'portrait'
+PWA_APP_START_URL = '/'
+PWA_APP_DIR = 'ltr'
+PWA_APP_LANG = 'en'
+
+PWA_SERVICE_WORKER_PATH = BASE_DIR / 'serviceworker.js'
+
+PWA_APP_ICONS = [
+    {"src": "/static/images/icon_144.png", "sizes": "144x144", "type": "image/png"},
+    {"src": "/static/images/icon_192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/static/images/icon_512.png", "sizes": "512x512", "type": "image/png"},
+]
+
+PWA_APP_ICONS_APPLE = [
+    {"src": "/static/images/icon_512.png", "sizes": "512x512", "type": "image/png"},
+]
+
+PWA_APP_SCREENSHOTS = [
+    {"src": "/static/images/icon_512.png", "sizes": "512x512", "form_factor": "wide"},
+    {"src": "/static/images/icon_512.png", "sizes": "512x512"},
+]
+
+PWA_APP_SHORTCUTS = []
+
+
+PWA_APP_DEBUG_MODE = DEBUG
 
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_ACCESS_SECRET')
@@ -154,3 +216,96 @@ STORAGES = {
 }
 
 LOG_DIR = ''
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'request_logs.log'),
+        },
+    },
+    'loggers': {
+        'bits': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'method',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
+
+# CSRF Configuration
+CSRF_TRUSTED_ORIGINS = [
+    "https://bits-pilani.store",
+    "https://www.bits-pilani.store",
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:8080",
+    "https://amazoff.shop",
+    "http://localhost:5173",
+    "https://pawnshop-react-frontend.s3.ap-south-1.amazonaws.com",
+]
+
+CSRF_COOKIE_DOMAIN = None
+SESSION_COOKIE_DOMAIN = None
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_COOKIE_AGE = 60 * 60 * 24 * 7 * 52
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_PATH = '/'
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_USE_SESSIONS = False
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+
+SECURE_SSL_REDIRECT = False
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_NAME = 'sessionid'
+SESSION_COOKIE_PATH = '/'
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = 'None'
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:8080",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "https://pawnshop-react-frontend.s3.ap-south-1.amazonaws.com",
+    "https://amazoff.shop",
+    "https://bits-pilani.store",
+]
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'cache_table',
+        'TIMEOUT': None,
+        'OPTIONS': {
+            'MAX_ENTRIES': 10000,
+        }
+    }
+}
+
+CSRF_FAILURE_VIEW = 'bits.views.csrf_failure_debug'
