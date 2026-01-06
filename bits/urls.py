@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, public_views
+from . import views#, public_views
 
 urlpatterns = [
     path('auth-receiver', views.auth_receiver, name='auth_receiver'),
@@ -31,9 +31,9 @@ urlpatterns = [
     path('api/hostels', views.api_hostels, name = "API hostels"),
     path('api/misc', views.api_misc, name = "all small shit"),
     path('api/feedback', views.api_feedback, name = "API feedback"),
-    path("public/api/items", public_views.public_api_items, name="public_api_items"),
-    path("public/api/items/<int:item_id>", public_views.public_api_item_detail, name="public_api_item_detail"),
-    path("public/api/categories", public_views.public_api_categories, name="public_api_categories"),
-    path("public/api/hostels", public_views.public_api_hostels, name="public_api_hostels"),
-    path("public/api/campuses", public_views.public_api_campuses, name="public_api_campuses"),
+    # path("public/api/items", public_views.public_api_items, name="public_api_items"),
+    # path("public/api/items/<int:item_id>", public_views.public_api_item_detail, name="public_api_item_detail"),
+    # path("public/api/categories", public_views.public_api_categories, name="public_api_categories"),
+    # path("public/api/hostels", public_views.public_api_hostels, name="public_api_hostels"),
+    # path("public/api/campuses", public_views.public_api_campuses, name="public_api_campuses"),
 ]
