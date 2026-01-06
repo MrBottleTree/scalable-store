@@ -719,27 +719,6 @@ def api_specificitem(request, id):
         })
     return JsonResponse({"status": "error", "error": "Invalid method"}, status=405)
 
-@ensure_csrf_cookie
-def api_feedback(request):
-    email = request.session.get('email')
-    person = Person.objects.filter(email = email).first()
-    if not person:
-        return JsonResponse({"status": "error", "error": "Access Denied!"}, status=403)
-
-    if request.method == "POST":
-        try:
-            description = request.POST.get('description', '')
-            images = request.FILES.getlist('images')
-            feedback = Feedback.objects.create()
-            feedback.description = description
-            feedback.save()
-            for image in images:
-                FeedbackImage.objects.create(feedback=feedback, image=image)
-            return JsonResponse({"status": "ok"})
-        except Exception as e:
-            return JsonResponse({"status":"ok", "error": str(e)}, status=400)
-    else:
-        return JsonResponse({"status":"error", "error": "Invalid method"}, status=405)
 
 @ensure_csrf_cookie
 def api_mylisting(request):
@@ -798,13 +777,14 @@ def api_feedback(request):
 
     if request.method == "POST":
         try:
-            description = request.POST.get('description', '')
-            images = request.FILES.getlist('images')
-            feedback = Feedback.objects.create()
-            feedback.description = description
-            feedback.save()
-            for image in images:
-                FeedbackImage.objects.create(feedback=feedback, image=image)
+            description = request.POST.get("description", "")
+            images = request.FILES.getlist("images")
+            feedback = Feedback.objects.create(description=description)
+            feedback_images = [
+                FeedbackImage(feedback=feedback, image=image)
+                for image in images
+            ]
+            FeedbackImage.objects.bulk_create(feedback_images)
             return JsonResponse({"status": "ok"})
         except Exception as e:
             return JsonResponse({"status":"ok", "error": str(e)}, status=400)
