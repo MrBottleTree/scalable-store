@@ -229,13 +229,13 @@ def extract_images_from_request(request):
     existing_images = []
     uploaded_images = []
 
-    print("\n--- DEBUG: POST KEYS ---")
-    for key in request.POST:
-        print(f"POST key: {key} -> {request.POST.get(key)}")
+    # print("\n--- DEBUG: POST KEYS ---")
+    # for key in request.POST:
+    #     print(f"POST key: {key} -> {request.POST.get(key)}")
 
-    print("\n--- DEBUG: FILES KEYS ---")
-    for key in request.FILES:
-        print(f"FILES key: {key} -> {request.FILES.get(key).name}")
+    # print("\n--- DEBUG: FILES KEYS ---")
+    # for key in request.FILES:
+    #     print(f"FILES key: {key} -> {request.FILES.get(key).name}")
 
     existing_pattern = re.compile(r'^existingImages\[(\d+)\]\[image\]$')
     for key in request.POST:
@@ -250,6 +250,8 @@ def extract_images_from_request(request):
                 'index': int(index_value),
                 'image': image_data
             })
+        else:
+            print(f"Skipping POST key (not an existing image): {key}")
 
     upload_pattern = re.compile(r'^images\[(\d+)\]\[image\]$')
     for key in request.FILES:
@@ -268,13 +270,13 @@ def extract_images_from_request(request):
         else:
             print(f"WARNING: FILE key '{key}' did NOT match expected pattern")
 
-    print(f"\n--- Extracted {len(existing_images)} existing images ---")
-    for img in existing_images:
-        print(f"Existing -> index: {img['index']}, image: {img['image']}")
+    # print(f"\n--- Extracted {len(existing_images)} existing images ---")
+    # for img in existing_images:
+    #     print(f"Existing -> index: {img['index']}, image: {img['image']}")
 
-    print(f"\n--- Extracted {len(uploaded_images)} uploaded images ---")
-    for img in uploaded_images:
-        print(f"Uploaded -> index: {img['index']}, filename: {img['image'].name}")
+    # print(f"\n--- Extracted {len(uploaded_images)} uploaded images ---")
+    # for img in uploaded_images:
+    #     print(f"Uploaded -> index: {img['index']}, filename: {img['image'].name}")
 
     existing_images.sort(key=lambda x: x['index'])
     uploaded_images.sort(key=lambda x: x['index'])
