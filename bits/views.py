@@ -355,8 +355,8 @@ def api_items(request):
 
             sorted_items = helper.items_sort(items_query, sort_method)
             
-            cache.set(cache_key_items, sorted_items, 300)
-            cache.set(cache_key_counts, category_counts, 300)
+            cache.set(cache_key_items, sorted_items, 20000)
+            cache.set(cache_key_counts, category_counts, 20000)
 
         items_per_page = 20
         paginator = Paginator(sorted_items, items_per_page)
